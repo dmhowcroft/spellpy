@@ -6,12 +6,24 @@ MIT license: www.opensource.org/licenses/mit-license.php
 
 ################ Spelling Corrector 
 
+import os
+import pickle
 import re
 from collections import Counter
 
 def words(text): return re.findall(r'\w+', text.lower())
 
-WORDS = Counter(words(open('big.txt').read()))
+if os.path.exists("spell-counts.pickle"):
+    WORDS = pickle.load(open("spell-counts.pickle", 'rb'))
+else:
+    WORDS = Counter(words(open('big.txt').read()))
+    pickle.dump(WORDS, 
+                open("spell-counts.pickle", 'wb'))
+
+if os.path.exists("candidates.pickle"):
+    candidate_dict = pickle.load(open("candidates.pickle", 'rb'))
+else:
+    candidate_dict = {}
 
 def P(word, N=sum(WORDS.values())): 
     "Probability of `word`."
@@ -22,8 +34,10 @@ def correction(word):
     return max(candidates(word), key=P)
 
 def candidates(word): 
-    "Generate possible spelling corrections for word."
-    return (known([word]) or known(edits1(word)) or known(edits2(word)) or [word])
+    "Possible spelling corrections for word."
+    if word not in candidate_dict:
+        candidate_dict[word] = (known([word]) or known(edits1(word)) or known(edits2(word)) or [word])
+    return candidate_dict[word]
 
 def known(words): 
     "The subset of `words` that appear in the dictionary of WORDS."
